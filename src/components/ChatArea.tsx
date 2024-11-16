@@ -1,19 +1,23 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import {
   GoogleGenerativeAI,
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
-import { useState } from "react";
 
 const MODEL_NAME = "gemini-1.0-pro";
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY as string;
 
+type Role = "function" | "user" | "model";
+
+interface Message {
+  role: Role;
+  text: string;
+}
+
 export default function ChatArea() {
-  const [messages, setMessages] = useState<{ role: string; text: string }[]>(
-    []
-  );
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
   async function runChat(prompt: string) {
@@ -73,27 +77,15 @@ export default function ChatArea() {
   };
 
   const parseMessage = (message: string) => {
-    // Parse bold (**text**) into <b>
     let parsedMessage = message.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-
-    // Parse italic (*text*) into <i>
     parsedMessage = parsedMessage.replace(/\*(.*?)\*/g, "<i>$1</i>");
-
-    // Convert list items prefixed with "*" into <ul><li> structure
     parsedMessage = parsedMessage.replace(/^\s*\*\s+(.*)/gm, "<li>$1</li>");
-
-    // Wrap consecutive <li> elements in a <ul> tag
     parsedMessage = parsedMessage.replace(/(<li>.*?<\/li>)/g, "<ul>$1</ul>");
-
-    // Prevent nested <ul> tags being created repeatedly
     parsedMessage = parsedMessage.replace(/<\/ul>\s*<ul>/g, "");
-
-    // Handle paragraph separation for better readability
     parsedMessage = parsedMessage.replace(/\n\n+/g, "</p><p>");
-    parsedMessage = `<p>${parsedMessage}</p>`;
-
-    return parsedMessage;
+    return `<p>${parsedMessage}</p>`;
   };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#212121] text-gray-100 p-4 w-1/2">
       <div className="flex flex-col flex-1 bg-[#EEEEEE] rounded-lg shadow-md">
@@ -107,7 +99,6 @@ export default function ChatArea() {
                 }`}
               >
                 <div
-                  key={index}
                   className={`p-3 rounded-lg max-w-sm ${
                     msg.role === "user"
                       ? "bg-[#222831] text-[#EEEEEE] text-left"
